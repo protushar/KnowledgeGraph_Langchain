@@ -42,27 +42,33 @@ def main():
     # Sidebar configuration
     st.sidebar.header("⚙️ Configuration")
     
-    # Check if running locally with Ollama
-    try:
-        import ollama
-        local_mode = st.sidebar.checkbox("Use Local Ollama", value=False, help="Requires Ollama installed locally")
-        use_ollama = local_mode
-    except ImportError:
-        use_ollama = False
-        st.sidebar.info("ℹ️ Ollama not available. Using OpenAI API.")
+    # Choose LLM provider
+    llm_provider = st.sidebar.selectbox(
+        "Select LLM Provider",
+        ["Groq (Free, Recommended)", "Ollama (Local)", "OpenAI (Paid)"],
+        help="Choose the LLM to use"
+    )
     
-    if use_ollama:
+    # Map display names to provider codes
+    provider_map = {
+        "Groq (Free, Recommended)": "groq",
+        "Ollama (Local)": "ollama",
+        "OpenAI (Paid)": "openai"
+    }
+    provider = provider_map[llm_provider]
+    
+    if provider == "groq":
+        model_choice = "mixtral-8x7b-32768"
+        st.sidebar.info("✨ Using Groq - Free, no quota limits, super fast!")
+    elif provider == "ollama":
         model_choice = st.sidebar.selectbox(
             "Select Ollama Model",
             ["qwen3:1.7b", "mistral", "neural-chat"],
-            help="Choose the local model"
+            help="Requires Ollama installed locally"
         )
-    else:
-        model_choice = st.sidebar.selectbox(
-            "Select LLM Model",
-            ["gpt-3.5-turbo", "gpt-4"],
-            help="Choose the cloud model"
-        )
+    else:  # openai
+        model_choice = "gpt-3.5-turbo"
+        st.sidebar.warning("⚠️ Using OpenAI - Paid API, watch your quota")
     
     temperature = st.sidebar.slider(
         "Temperature",
@@ -76,10 +82,12 @@ def main():
     # Initialize session state
     if "engine" not in st.session_state:
         st.session_state.engine = KnowledgeGraphQueryEngine(
-            model=model_choice, 
+            llm_provider=provider,
+            model=model_choice,
             temperature=temperature,
-            api_key=st.secrets.get("OPENAI_API_KEY") if not use_ollama else None,
-            use_ollama=use_ollama
+            api_key=st.secrets.get("GROQ_API_KEY") if provider == "groq" else 
+                    st.secrets.get("OPENAI_API_KEY") if provider == "openai" else None,
+            use_ollama=(provider == "ollama")
         )
     
     # Main content

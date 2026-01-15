@@ -1,6 +1,7 @@
 """
 Query Engine for Knowledge Graph
 Handles graph construction and LLM-based querying
+Supports: Groq (free), Ollama (local), OpenAI (paid)
 """
 
 import os
@@ -9,34 +10,71 @@ from GraphTransformer import graph_documents
 
 
 class KnowledgeGraphQueryEngine:
-    def __init__(self, model="gpt-3.5-turbo", temperature=0, api_key=None, use_ollama=False):
-        """Initialize the query engine with a knowledge graph and LLM"""
+    def __init__(self, llm_provider="groq", model=None, temperature=0, api_key=None, use_ollama=False):
+        """
+        Initialize the query engine with a knowledge graph and LLM
+        
+        Args:
+            llm_provider: "groq" (free), "openai" (paid), or "ollama" (local)
+            model: Model name (auto-selected if None)
+            temperature: Response creativity (0-1)
+            api_key: API key for the provider
+            use_ollama: Force local Ollama usage
+        """
         self.G = nx.DiGraph()
         self.temperature = temperature
-        self.use_ollama = use_ollama
+        self.llm_provider = llm_provider
         
-        # Initialize LLM
+        # Initialize LLM based on provider
         if use_ollama:
-            try:
-                from langchain_ollama import ChatOllama
-                self.llm = ChatOllama(model=model, temperature=temperature)
-            except ImportError:
-                print("Warning: langchain-ollama not installed. Falling back to OpenAI.")
-                from langchain_openai import ChatOpenAI
-                self.llm = ChatOpenAI(
-                    model="gpt-3.5-turbo",
-                    temperature=temperature,
-                    api_key=api_key or os.getenv("OPENAI_API_KEY")
-                )
+            self._init_ollama(model)
+        elif llm_provider.lower() == "groq":
+            self._init_groq(model, api_key)
+        elif llm_provider.lower() == "openai":
+            self._init_openai(model, api_key)
         else:
-            from langchain_openai import ChatOpenAI
-            self.llm = ChatOpenAI(
-                model=model,
-                temperature=temperature,
-                api_key=api_key or os.getenv("OPENAI_API_KEY")
-            )
+            # Default to Groq (free)
+            self._init_groq(model, api_key)
         
         self._build_graph()
+    
+    def _init_groq(self, model=None, api_key=None):
+        """Initialize Groq LLM (free)"""
+        try:
+            from langchain_groq import ChatGroq
+            self.llm = ChatGroq(
+                model=model or "mixtral-8x7b-32768",
+                temperature=self.temperature,
+                api_key=api_key or os.getenv("GROQ_API_KEY")
+            )
+        except Exception as e:
+            print(f"Error initializing Groq: {e}. Falling back to Ollama.")
+            self._init_ollama(model)
+    
+    def _init_openai(self, model=None, api_key=None):
+        """Initialize OpenAI LLM (paid)"""
+        try:
+            from langchain_openai import ChatOpenAI
+            self.llm = ChatOpenAI(
+                model=model or "gpt-3.5-turbo",
+                temperature=self.temperature,
+                api_key=api_key or os.getenv("OPENAI_API_KEY")
+            )
+        except Exception as e:
+            print(f"Error initializing OpenAI: {e}. Falling back to Groq.")
+            self._init_groq(model)
+    
+    def _init_ollama(self, model=None):
+        """Initialize local Ollama (free, requires installation)"""
+        try:
+            from langchain_ollama import ChatOllama
+            self.llm = ChatOllama(
+                model=model or "qwen3:1.7b",
+                temperature=self.temperature
+            )
+        except Exception as e:
+            print(f"Error initializing Ollama: {e}. Falling back to Groq.")
+            self._init_groq(model)
         
     def _build_graph(self):
         """Build the knowledge graph from documents"""
