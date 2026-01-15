@@ -43,8 +43,8 @@ class KnowledgeGraphQueryEngine:
         try:
             from langchain_groq import ChatGroq
             
-            # Use llama-3.1 which is more reliable
-            actual_model = model or "llama-3.1-70b-versatile"
+            # Use gemma2 which is currently available
+            actual_model = model or "gemma2-9b-it"
             
             self.llm = ChatGroq(
                 model=actual_model,

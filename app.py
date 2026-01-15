@@ -58,7 +58,7 @@ def main():
     provider = provider_map[llm_provider]
     
     if provider == "groq":
-        model_choice = "llama-3.1-70b-versatile"
+        model_choice = "gemma2-9b-it"
         st.sidebar.info("✨ Using Groq - Free, no quota limits, super fast!")
     elif provider == "ollama":
         model_choice = st.sidebar.selectbox(
