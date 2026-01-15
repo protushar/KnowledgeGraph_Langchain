@@ -1,8 +1,8 @@
-langchain==1.2.4
-langchain-core==1.2.7
-langchain-openai==1.1.7
-langchain-experimental==0.4.1
-networkx==3.6.1
-python-dotenv==1.2.1
-streamlit==1.31.1
+langchain>=1.0.0
+langchain-core>=1.0.0
+langchain-openai>=1.0.0
+langchain-experimental>=0.0.0
+networkx>=3.0
+python-dotenv>=1.0.0
+streamlit>=1.28.0
 openai>=1.0.0
