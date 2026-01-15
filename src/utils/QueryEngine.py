@@ -43,7 +43,7 @@ class KnowledgeGraphQueryEngine:
         try:
             from langchain_groq import ChatGroq
             
-            # Use gemma2 which is currently available
+            # Use provided model or default to gemma2
             actual_model = model or "gemma2-9b-it"
             
             self.llm = ChatGroq(
@@ -52,7 +52,7 @@ class KnowledgeGraphQueryEngine:
                 api_key=api_key or os.getenv("GROQ_API_KEY")
             )
         except Exception as e:
-            print(f"Error initializing Groq: {e}. Falling back to Ollama.")
+            print(f"Error initializing Groq with model {model}: {e}. Falling back to Ollama.")
             self._init_ollama(model)
     
     def _init_openai(self, model=None, api_key=None):
