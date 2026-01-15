@@ -3,17 +3,39 @@ Query Engine for Knowledge Graph
 Handles graph construction and LLM-based querying
 """
 
+import os
 import networkx as nx
 from GraphTransformer import graph_documents
-from langchain_ollama import ChatOllama
-from langchain_core.prompts import PromptTemplate
 
 
 class KnowledgeGraphQueryEngine:
-    def __init__(self, model="qwen3:1.7b", temperature=0):
+    def __init__(self, model="gpt-3.5-turbo", temperature=0, api_key=None, use_ollama=False):
         """Initialize the query engine with a knowledge graph and LLM"""
         self.G = nx.DiGraph()
-        self.llm = ChatOllama(model=model, temperature=temperature)
+        self.temperature = temperature
+        self.use_ollama = use_ollama
+        
+        # Initialize LLM
+        if use_ollama:
+            try:
+                from langchain_ollama import ChatOllama
+                self.llm = ChatOllama(model=model, temperature=temperature)
+            except ImportError:
+                print("Warning: langchain-ollama not installed. Falling back to OpenAI.")
+                from langchain_openai import ChatOpenAI
+                self.llm = ChatOpenAI(
+                    model="gpt-3.5-turbo",
+                    temperature=temperature,
+                    api_key=api_key or os.getenv("OPENAI_API_KEY")
+                )
+        else:
+            from langchain_openai import ChatOpenAI
+            self.llm = ChatOpenAI(
+                model=model,
+                temperature=temperature,
+                api_key=api_key or os.getenv("OPENAI_API_KEY")
+            )
+        
         self._build_graph()
         
     def _build_graph(self):
@@ -40,6 +62,8 @@ Relationships ({len(self.G.edges())}): {', '.join(edges_info) if edges_info else
     
     def query(self, question):
         """Execute a query against the knowledge graph"""
+        from langchain_core.prompts import PromptTemplate
+        
         graph_context = self.get_graph_context()
         
         prompt = PromptTemplate(

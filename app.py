@@ -42,11 +42,27 @@ def main():
     # Sidebar configuration
     st.sidebar.header("⚙️ Configuration")
     
-    model_choice = st.sidebar.selectbox(
-        "Select LLM Model",
-        ["qwen3:1.7b", "mistral", "neural-chat"],
-        help="Choose the model to use for analysis"
-    )
+    # Check if running locally with Ollama
+    try:
+        import ollama
+        local_mode = st.sidebar.checkbox("Use Local Ollama", value=False, help="Requires Ollama installed locally")
+        use_ollama = local_mode
+    except ImportError:
+        use_ollama = False
+        st.sidebar.info("ℹ️ Ollama not available. Using OpenAI API.")
+    
+    if use_ollama:
+        model_choice = st.sidebar.selectbox(
+            "Select Ollama Model",
+            ["qwen3:1.7b", "mistral", "neural-chat"],
+            help="Choose the local model"
+        )
+    else:
+        model_choice = st.sidebar.selectbox(
+            "Select LLM Model",
+            ["gpt-3.5-turbo", "gpt-4"],
+            help="Choose the cloud model"
+        )
     
     temperature = st.sidebar.slider(
         "Temperature",
@@ -61,7 +77,9 @@ def main():
     if "engine" not in st.session_state:
         st.session_state.engine = KnowledgeGraphQueryEngine(
             model=model_choice, 
-            temperature=temperature
+            temperature=temperature,
+            api_key=st.secrets.get("OPENAI_API_KEY") if not use_ollama else None,
+            use_ollama=use_ollama
         )
     
     # Main content
