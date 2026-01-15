@@ -42,8 +42,12 @@ class KnowledgeGraphQueryEngine:
         """Initialize Groq LLM (free)"""
         try:
             from langchain_groq import ChatGroq
+            
+            # Use llama-3.1 which is more reliable
+            actual_model = model or "llama-3.1-70b-versatile"
+            
             self.llm = ChatGroq(
-                model=model or "mixtral-8x7b-32768",
+                model=actual_model,
                 temperature=self.temperature,
                 api_key=api_key or os.getenv("GROQ_API_KEY")
             )
