@@ -81,12 +81,25 @@ def main():
     
     # Initialize session state
     if "engine" not in st.session_state:
+        # Try to get API key from Streamlit secrets (cloud) or environment (local)
+        api_key = None
+        
+        if provider == "groq":
+            try:
+                api_key = st.secrets.get("GROQ_API_KEY")
+            except:
+                api_key = os.getenv("GROQ_API_KEY")
+        elif provider == "openai":
+            try:
+                api_key = st.secrets.get("OPENAI_API_KEY")
+            except:
+                api_key = os.getenv("OPENAI_API_KEY")
+        
         st.session_state.engine = KnowledgeGraphQueryEngine(
             llm_provider=provider,
             model=model_choice,
             temperature=temperature,
-            api_key=st.secrets.get("GROQ_API_KEY") if provider == "groq" else 
-                    st.secrets.get("OPENAI_API_KEY") if provider == "openai" else None,
+            api_key=api_key,
             use_ollama=(provider == "ollama")
         )
     
@@ -103,7 +116,16 @@ def main():
             st.subheader("Ask Your Question")
             st.markdown("Enter a financial question to query the knowledge graph:")
             
-            # Sample queries
+            # Always show text input
+            user_query = st.text_area(
+                "Your Question:",
+                height=120,
+                placeholder="Enter your financial question here...",
+                label_visibility="collapsed",
+                key="custom_query"
+            )
+            
+            # Sample queries dropdown
             sample_queries = [
                 "Given salary, liabilities, and timeline, is purchasing Mahindra XUV 7XO by year-end feasible?",
                 "Which bank can we take a car loan from with the lowest interest rate?",
@@ -112,21 +134,15 @@ def main():
             ]
             
             selected_sample = st.selectbox(
-                "Or select a sample query:",
-                ["Custom Query"] + sample_queries,
-                help="Choose a pre-defined query or enter your own"
+                "Or quick-insert a sample query:",
+                [""] + sample_queries,
+                help="Select a pre-defined query to auto-fill the textbox above"
             )
             
-            if selected_sample == "Custom Query":
-                user_query = st.text_area(
-                    "Your Question:",
-                    height=120,
-                    placeholder="Enter your financial question here...",
-                    label_visibility="collapsed"
-                )
-            else:
+            # Auto-fill if sample selected
+            if selected_sample:
                 user_query = selected_sample
-                st.info(f"📌 Selected: {selected_sample}")
+                st.info(f"📌 Pre-loaded: {selected_sample}")
             
             # Execute query
             col_btn1, col_btn2 = st.columns(2)
