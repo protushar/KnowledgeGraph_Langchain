@@ -1,9 +1,11 @@
 """
 Image Generation Module
 Generates images from text prompts using Hugging Face models
+Optimized for CPU inference with caching and fast generation
 """
 
 import os
+import hashlib
 from io import BytesIO
 from PIL import Image
 
@@ -11,20 +13,23 @@ from PIL import Image
 class ImageGenerator:
     """Generate images from text prompts using Hugging Face models"""
     
-    def __init__(self, model_id="runwayml/stable-diffusion-v1-5"):
+    def __init__(self, model_id="runwayml/stable-diffusion-v1-5", cache_dir=None):
         """
         Initialize the image generator
         
         Args:
             model_id: Hugging Face model ID for image generation
-                     Default: runwayml/stable-diffusion-v1-5 (open-access, no auth required)
+                     Default: runwayml/stable-diffusion-v1-5 (fast, open-access)
+            cache_dir: Directory to cache generated images
         """
         self.model_id = model_id
         self.pipe = None
+        self.cache_dir = cache_dir or os.path.join(os.path.dirname(__file__), "..", "..", ".cache", "images")
+        os.makedirs(self.cache_dir, exist_ok=True)
         self._initialize_model()
     
     def _initialize_model(self):
-        """Initialize the Hugging Face pipeline"""
+        """Initialize the Hugging Face pipeline with CPU optimizations"""
         try:
             from diffusers import StableDiffusionPipeline
             import torch
@@ -33,35 +38,48 @@ class ImageGenerator:
             device = "cuda" if torch.cuda.is_available() else "cpu"
             
             print(f"Loading {self.model_id} on {device}...")
-            print("First load may take a few minutes as the model downloads (~4GB)...")
+            print("Optimizing for fast inference...")
+            
+            # Use float16 where possible, fall back to float32
+            try:
+                torch_dtype = torch.float16
+            except:
+                torch_dtype = torch.float32
             
             self.pipe = StableDiffusionPipeline.from_pretrained(
                 self.model_id,
-                torch_dtype=torch.float32,
-                use_auth_token=False  # Explicitly don't require auth for open models
+                torch_dtype=torch_dtype,
+                use_auth_token=False
             )
             self.pipe = self.pipe.to(device)
             
-            # Enable memory optimizations
-            if device == "cpu":
-                self.pipe.enable_attention_slicing()
-            else:
-                self.pipe.enable_attention_slicing()
+            # Enable memory optimizations for faster inference
+            self.pipe.enable_attention_slicing()
             
-            print(f"Model loaded successfully on {device}")
+            # For CPU, use sequential CPU offloading to reduce memory
+            if device == "cpu":
+                self.pipe.enable_sequential_cpu_offload()
+            
+            print(f"Model loaded and optimized on {device}")
         
         except Exception as e:
             print(f"Error loading model: {e}")
             print("Falling back to placeholder image generation")
             self.pipe = None
     
-    def generate_image(self, prompt, num_inference_steps=25, guidance_scale=7.5):
+    def _get_cache_path(self, prompt, num_steps, guidance):
+        """Generate cache file path based on prompt hash"""
+        cache_key = f"{prompt}_{num_steps}_{guidance}"
+        hash_name = hashlib.md5(cache_key.encode()).hexdigest()
+        return os.path.join(self.cache_dir, f"{hash_name}.png")
+    
+    def generate_image(self, prompt, num_inference_steps=20, guidance_scale=7.0):
         """
         Generate an image from a text prompt
         
         Args:
             prompt: Text description of the image to generate
-            num_inference_steps: Number of inference steps (higher = better quality, slower). Default 25 for speed.
+            num_inference_steps: Number of inference steps (20-30 for fast CPU). Default 20 for speed.
             guidance_scale: Guidance scale for controlling prompt adherence
         
         Returns:
@@ -70,18 +88,35 @@ class ImageGenerator:
         if not prompt or not isinstance(prompt, str):
             return None
         
+        # Check cache first
+        cache_path = self._get_cache_path(prompt, num_inference_steps, guidance_scale)
+        if os.path.exists(cache_path):
+            print(f"Loading image from cache")
+            try:
+                return Image.open(cache_path)
+            except:
+                pass
+        
         try:
             if self.pipe is None:
                 return self._generate_placeholder(prompt)
             
-            # Generate image
-            print(f"Generating image from prompt: {prompt}")
+            # Generate image with optimizations
+            print(f"Generating image from prompt: {prompt[:50]}...")
             
             image = self.pipe(
                 prompt=prompt,
                 num_inference_steps=num_inference_steps,
-                guidance_scale=guidance_scale
+                guidance_scale=guidance_scale,
+                height=512,
+                width=512
             ).images[0]
+            
+            # Cache the generated image
+            try:
+                image.save(cache_path)
+            except:
+                pass
             
             return image
         

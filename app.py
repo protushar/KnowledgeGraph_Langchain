@@ -265,9 +265,9 @@ def main():
                 
                 col_gen1, col_gen2 = st.columns([1, 1])
                 with col_gen1:
-                    quality = st.slider("Speed (inference steps):", 15, 50, 25, step=5, help="Lower = faster but lower quality")
+                    quality = st.slider("Speed (inference steps):", 15, 35, 20, step=1, help="20-25 recommended for best speed/quality")
                 with col_gen2:
-                    guidance = st.slider("Guidance Scale:", 1.0, 20.0, 7.5, step=0.5)
+                    guidance = st.slider("Prompt Accuracy:", 5.0, 15.0, 7.0, step=0.5)
                 
                 if st.button("🎨 Generate Image", width='stretch'):
                     if custom_prompt:
@@ -324,7 +324,7 @@ def main():
                                     st.caption(f"Prompt: {prompt}")
                                     
                                     with st.spinner(f"Generating visualization {idx}/{len(prompts)}..."):
-                                        image = img_gen.generate_image(prompt, num_inference_steps=25)
+                                        image = img_gen.generate_image(prompt, num_inference_steps=20)
                                         
                                         if image:
                                             st.image(image, width='stretch')
