@@ -265,16 +265,19 @@ def main():
                 
                 col_gen1, col_gen2 = st.columns([1, 1])
                 with col_gen1:
-                    quality = st.slider("Quality (inference steps):", 30, 100, 50, step=10)
+                    quality = st.slider("Speed (inference steps):", 15, 50, 25, step=5, help="Lower = faster but lower quality")
                 with col_gen2:
                     guidance = st.slider("Guidance Scale:", 1.0, 20.0, 7.5, step=0.5)
                 
                 if st.button("🎨 Generate Image", width='stretch'):
                     if custom_prompt:
-                        with st.spinner("🎨 Generating image... This may take a moment⏳"):
+                        with st.spinner("🎨 Generating image... (first time may take 2-3 minutes to load model)⏳"):
                             try:
-                                img_gen = ImageGenerator()
-                                image = img_gen.generate_image(
+                                # Cache image generator in session state to avoid reloading
+                                if "img_gen" not in st.session_state:
+                                    st.session_state.img_gen = ImageGenerator()
+                                
+                                image = st.session_state.img_gen.generate_image(
                                     custom_prompt,
                                     num_inference_steps=quality,
                                     guidance_scale=guidance
@@ -303,21 +306,25 @@ def main():
                 
                 if st.button("🎨 Generate Visualization Images", width='stretch'):
                     if query_result_prompt:
-                        with st.spinner("🎨 Generating visualization images... This may take a moment⏳"):
+                        with st.spinner("🎨 Generating visualization images... (first time may take 2-3 minutes)⏳"):
                             try:
                                 # Generate prompts from query result
                                 prompts = generate_query_visualization_prompts(query_result_prompt)
                                 
                                 st.info(f"Generated {len(prompts)} visualization prompts from your query result")
                                 
-                                img_gen = ImageGenerator()
+                                # Cache image generator in session state
+                                if "img_gen" not in st.session_state:
+                                    st.session_state.img_gen = ImageGenerator()
+                                
+                                img_gen = st.session_state.img_gen
                                 
                                 for idx, prompt in enumerate(prompts, 1):
                                     st.subheader(f"Visualization {idx}")
                                     st.caption(f"Prompt: {prompt}")
                                     
                                     with st.spinner(f"Generating visualization {idx}/{len(prompts)}..."):
-                                        image = img_gen.generate_image(prompt, num_inference_steps=50)
+                                        image = img_gen.generate_image(prompt, num_inference_steps=25)
                                         
                                         if image:
                                             st.image(image, width='stretch')

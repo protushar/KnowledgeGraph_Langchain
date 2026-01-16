@@ -55,13 +55,13 @@ class ImageGenerator:
             print("Falling back to placeholder image generation")
             self.pipe = None
     
-    def generate_image(self, prompt, num_inference_steps=50, guidance_scale=7.5):
+    def generate_image(self, prompt, num_inference_steps=25, guidance_scale=7.5):
         """
         Generate an image from a text prompt
         
         Args:
             prompt: Text description of the image to generate
-            num_inference_steps: Number of inference steps (higher = better quality, slower)
+            num_inference_steps: Number of inference steps (higher = better quality, slower). Default 25 for speed.
             guidance_scale: Guidance scale for controlling prompt adherence
         
         Returns:
