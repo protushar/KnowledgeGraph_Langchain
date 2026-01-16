@@ -11,12 +11,13 @@ from PIL import Image
 class ImageGenerator:
     """Generate images from text prompts using Hugging Face models"""
     
-    def __init__(self, model_id="stabilityai/stable-diffusion-2-1"):
+    def __init__(self, model_id="runwayml/stable-diffusion-v1-5"):
         """
         Initialize the image generator
         
         Args:
             model_id: Hugging Face model ID for image generation
+                     Default: runwayml/stable-diffusion-v1-5 (open-access, no auth required)
         """
         self.model_id = model_id
         self.pipe = None
@@ -32,22 +33,26 @@ class ImageGenerator:
             device = "cuda" if torch.cuda.is_available() else "cpu"
             
             print(f"Loading {self.model_id} on {device}...")
+            print("First load may take a few minutes as the model downloads (~4GB)...")
             
             self.pipe = StableDiffusionPipeline.from_pretrained(
                 self.model_id,
-                torch_dtype=torch.float16 if device == "cuda" else torch.float32
+                torch_dtype=torch.float32,
+                use_auth_token=False  # Explicitly don't require auth for open models
             )
             self.pipe = self.pipe.to(device)
             
             # Enable memory optimizations
-            if device == "cuda":
+            if device == "cpu":
+                self.pipe.enable_attention_slicing()
+            else:
                 self.pipe.enable_attention_slicing()
             
             print(f"Model loaded successfully on {device}")
         
         except Exception as e:
             print(f"Error loading model: {e}")
-            print("Falling back to a simpler text-to-image approach")
+            print("Falling back to placeholder image generation")
             self.pipe = None
     
     def generate_image(self, prompt, num_inference_steps=50, guidance_scale=7.5):
