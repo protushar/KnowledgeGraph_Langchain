@@ -152,7 +152,7 @@ def main():
             # Execute query
             col_btn1, col_btn2 = st.columns(2)
             with col_btn1:
-                execute_btn = st.button("🚀 Execute Query", use_container_width=True)
+                execute_btn = st.button("🚀 Execute Query", width='stretch')
             
             if execute_btn and user_query:
                 with st.spinner("Processing query... This may take a moment⏳"):
@@ -166,7 +166,7 @@ def main():
                 # Export option
                 col_export1, col_export2 = st.columns(2)
                 with col_export1:
-                    if st.button("📋 Copy Response", use_container_width=True):
+                    if st.button("📋 Copy Response", width='stretch'):
                         st.code(response, language="markdown")
             
             elif execute_btn:
@@ -193,7 +193,7 @@ def main():
                     "Node": stats["nodes"],
                     "Count": [1] * len(stats["nodes"])
                 }
-                st.dataframe(nodes_df, use_container_width=True)
+                st.dataframe(nodes_df, width='stretch')
             else:
                 st.info("No nodes found in the graph.")
             
@@ -207,7 +207,7 @@ def main():
                         "Relationship": relation,
                         "Target": target
                     })
-                st.dataframe(edges_data, use_container_width=True)
+                st.dataframe(edges_data, width='stretch')
             else:
                 st.info("No relationships found in the graph.")
         
@@ -269,7 +269,7 @@ def main():
                 with col_gen2:
                     guidance = st.slider("Guidance Scale:", 1.0, 20.0, 7.5, step=0.5)
                 
-                if st.button("🎨 Generate Image", use_container_width=True):
+                if st.button("🎨 Generate Image", width='stretch'):
                     if custom_prompt:
                         with st.spinner("🎨 Generating image... This may take a moment⏳"):
                             try:
@@ -282,7 +282,7 @@ def main():
                                 
                                 if image:
                                     st.success("Image generated successfully! ✅")
-                                    st.image(image, caption=custom_prompt, use_column_width=True)
+                                    st.image(image, caption=custom_prompt, width='stretch')
                                 else:
                                     st.error("Failed to generate image. Please try again.")
                             
@@ -301,7 +301,7 @@ def main():
                     label_visibility="collapsed"
                 )
                 
-                if st.button("🎨 Generate Visualization Images", use_container_width=True):
+                if st.button("🎨 Generate Visualization Images", width='stretch'):
                     if query_result_prompt:
                         with st.spinner("🎨 Generating visualization images... This may take a moment⏳"):
                             try:
@@ -320,7 +320,7 @@ def main():
                                         image = img_gen.generate_image(prompt, num_inference_steps=50)
                                         
                                         if image:
-                                            st.image(image, use_column_width=True)
+                                            st.image(image, width='stretch')
                                         else:
                                             st.warning(f"Could not generate visualization {idx}")
                             
