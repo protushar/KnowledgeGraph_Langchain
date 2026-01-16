@@ -40,25 +40,21 @@ class ImageGenerator:
             print(f"Loading {self.model_id} on {device}...")
             print("Optimizing for fast inference...")
             
-            # Use float16 where possible, fall back to float32
-            try:
+            # Use float32 on CPU (float16 doesn't work on CPU)
+            if device == "cuda":
                 torch_dtype = torch.float16
-            except:
+            else:
                 torch_dtype = torch.float32
             
             self.pipe = StableDiffusionPipeline.from_pretrained(
                 self.model_id,
-                torch_dtype=torch_dtype,
-                use_auth_token=False
+                dtype=torch_dtype,  # Use dtype instead of torch_dtype
+                safety_checker=None  # Disable safety checker to speed up
             )
             self.pipe = self.pipe.to(device)
             
             # Enable memory optimizations for faster inference
             self.pipe.enable_attention_slicing()
-            
-            # For CPU, use sequential CPU offloading to reduce memory
-            if device == "cpu":
-                self.pipe.enable_sequential_cpu_offload()
             
             print(f"Model loaded and optimized on {device}")
         
@@ -79,7 +75,7 @@ class ImageGenerator:
         
         Args:
             prompt: Text description of the image to generate
-            num_inference_steps: Number of inference steps (20-30 for fast CPU). Default 20 for speed.
+            num_inference_steps: Number of inference steps (20-30 recommended)
             guidance_scale: Guidance scale for controlling prompt adherence
         
         Returns:
@@ -94,15 +90,16 @@ class ImageGenerator:
             print(f"Loading image from cache")
             try:
                 return Image.open(cache_path)
-            except:
-                pass
+            except Exception as cache_err:
+                print(f"Cache load failed: {cache_err}, regenerating...")
         
         try:
             if self.pipe is None:
+                print("Pipeline not available, using placeholder")
                 return self._generate_placeholder(prompt)
             
             # Generate image with optimizations
-            print(f"Generating image from prompt: {prompt[:50]}...")
+            print(f"Generating image: '{prompt[:50]}...' ({num_inference_steps} steps)")
             
             image = self.pipe(
                 prompt=prompt,
@@ -114,14 +111,17 @@ class ImageGenerator:
             
             # Cache the generated image
             try:
+                os.makedirs(os.path.dirname(cache_path), exist_ok=True)
                 image.save(cache_path)
-            except:
-                pass
+                print(f"Cached image successfully")
+            except Exception as cache_save_err:
+                print(f"Cache save failed (non-critical): {cache_save_err}")
             
             return image
         
         except Exception as e:
             print(f"Error generating image: {e}")
+            print("Using placeholder image instead")
             return self._generate_placeholder(prompt)
     
     def _generate_placeholder(self, prompt):
