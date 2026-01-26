@@ -10,7 +10,6 @@ import os
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), 'src', 'utils'))
 
 from QueryEngine import KnowledgeGraphQueryEngine
-from ImageGenerator import ImageGenerator, generate_query_visualization_prompts
 
 
 def main():
@@ -115,7 +114,7 @@ def main():
         st.header("📊 Knowledge Graph Analysis")
         
         # Tab-based interface
-        tab1, tab2, tab3, tab4 = st.tabs(["Query Interface", "Graph Statistics", "Sample Queries", "Image Generator"])
+        tab1, tab2, tab3 = st.tabs(["Query Interface", "Graph Statistics", "Sample Queries"])
         
         with tab1:
             st.subheader("Ask Your Question")
@@ -241,100 +240,6 @@ def main():
 ✅ Request structured responses (steps, recommendations, considerations)
 ✅ Ask follow-up questions to get more detailed insights
             """)
-        
-        with tab4:
-            st.subheader("🎨 Image Generator")
-            st.markdown("Generate images from text prompts using AI models")
-            
-            # Image generation mode selector
-            gen_mode = st.radio(
-                "Select Image Generation Mode:",
-                ["Custom Prompt", "Generate from Query Result"],
-                horizontal=True
-            )
-            
-            if gen_mode == "Custom Prompt":
-                st.markdown("### Generate Image from Custom Prompt")
-                
-                custom_prompt = st.text_area(
-                    "Enter your image description:",
-                    height=100,
-                    placeholder="E.g., 'A professional financial advisor discussing investment options with a client'",
-                    label_visibility="collapsed"
-                )
-                
-                col_gen1, col_gen2 = st.columns([1, 1])
-                with col_gen1:
-                    quality = st.slider("Speed (inference steps):", 15, 35, 20, step=1, help="20-25 recommended for best speed/quality")
-                with col_gen2:
-                    guidance = st.slider("Prompt Accuracy:", 5.0, 15.0, 7.0, step=0.5)
-                
-                if st.button("🎨 Generate Image", width='stretch'):
-                    if custom_prompt:
-                        with st.spinner("🎨 Generating image... (first time may take 2-3 minutes to load model)⏳"):
-                            try:
-                                # Cache image generator in session state to avoid reloading
-                                if "img_gen" not in st.session_state:
-                                    st.session_state.img_gen = ImageGenerator()
-                                
-                                image = st.session_state.img_gen.generate_image(
-                                    custom_prompt,
-                                    num_inference_steps=quality,
-                                    guidance_scale=guidance
-                                )
-                                
-                                if image:
-                                    st.success("Image generated successfully! ✅")
-                                    st.image(image, caption=custom_prompt, width='stretch')
-                                else:
-                                    st.error("Failed to generate image. Please try again.")
-                            
-                            except Exception as e:
-                                st.error(f"Error: {str(e)}")
-                    else:
-                        st.warning("⚠️ Please enter a prompt before generating.")
-            
-            else:  # Generate from Query Result
-                st.markdown("### Generate Images from Query Result")
-                
-                query_result_prompt = st.text_area(
-                    "Paste your query result:",
-                    height=150,
-                    placeholder="Paste the financial analysis result here...",
-                    label_visibility="collapsed"
-                )
-                
-                if st.button("🎨 Generate Visualization Images", width='stretch'):
-                    if query_result_prompt:
-                        with st.spinner("🎨 Generating visualization images... (first time may take 2-3 minutes)⏳"):
-                            try:
-                                # Generate prompts from query result
-                                prompts = generate_query_visualization_prompts(query_result_prompt)
-                                
-                                st.info(f"Generated {len(prompts)} visualization prompts from your query result")
-                                
-                                # Cache image generator in session state
-                                if "img_gen" not in st.session_state:
-                                    st.session_state.img_gen = ImageGenerator()
-                                
-                                img_gen = st.session_state.img_gen
-                                
-                                for idx, prompt in enumerate(prompts, 1):
-                                    st.subheader(f"Visualization {idx}")
-                                    st.caption(f"Prompt: {prompt}")
-                                    
-                                    with st.spinner(f"Generating visualization {idx}/{len(prompts)}..."):
-                                        image = img_gen.generate_image(prompt, num_inference_steps=20)
-                                        
-                                        if image:
-                                            st.image(image, width='stretch')
-                                        else:
-                                            st.warning(f"Could not generate visualization {idx}")
-                            
-                            except Exception as e:
-                                st.error(f"Error: {str(e)}")
-                    else:
-                        st.warning("⚠️ Please paste a query result before generating visualizations.")
     
     with col2:
         st.sidebar.markdown("---")
